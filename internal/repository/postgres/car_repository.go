@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/kefir4iick/go/internal/domain"
+	"github.com/kefir4iick/crud/internal/domain"
 	_ "github.com/lib/pq"
 )
 
