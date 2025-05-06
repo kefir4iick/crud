@@ -81,3 +81,55 @@ func (s *carService) GetAll(ctx context.Context, limit, offset int) ([]domain.Ca
 
 	return cars, nil
 }
+
+func (s *carService) Update(ctx context.Context, id string, input domain.UpdateCarInput) (*domain.Car, error) {
+	if id == "" {
+		return nil, errors.New("id is required")
+	}
+
+	existing, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("car not found: %w", err)
+	}
+	if existing == nil {
+		return nil, domain.ErrCarNotFound
+	}
+
+	if input.Make != nil {
+		if *input.Make == "" {
+			return nil, errors.New("make cannot be empty")
+		}
+		if len(*input.Make) > 255 {
+			return nil, errors.New("make must be less than 255 characters")
+		}
+		existing.Make = *input.Make
+	}
+
+	if input.Model != nil {
+		if *input.Model == "" {
+			return nil, errors.New("model cannot be empty")
+		}
+		existing.Model = *input.Model
+	}
+
+	if input.Year != nil {
+		if *input.Year < 1900 {
+			return nil, errors.New("year must be >= 1900")
+		}
+		existing.Year = *input.Year
+	}
+
+	if input.Price != nil {
+		if *input.Price <= 0 {
+			return nil, errors.New("price must be positive")
+		}
+		existing.Price = *input.Price
+	}
+
+	updated, err := s.repo.Update(ctx, id, *existing)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update car: %w", err)
+	}
+
+	return updated, nil
+}
