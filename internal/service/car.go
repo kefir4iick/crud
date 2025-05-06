@@ -49,3 +49,35 @@ func (s *carService) Create(ctx context.Context, input domain.Car) (*domain.Car,
 
 	return car, nil
 }
+
+func (s *carService) GetByID(ctx context.Context, id string) (*domain.Car, error) {
+	if id == "" {
+		return nil, errors.New("id is required")
+	}
+
+	car, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get car: %w", err)
+	}
+
+	return car, nil
+}
+
+func (s *carService) GetAll(ctx context.Context, limit, offset int) ([]domain.Car, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	cars, err := s.repo.GetAll(ctx, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get cars: %w", err)
+	}
+
+	return cars, nil
+}
