@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/kefir4iick/go/internal/domain"
-	"github.com/kefir4iick/go/internal/repository"
+	"github.com/kefir4iick/crud/internal/domain"
+	"github.com/kefir4iick/crud/internal/repository"
 )
 
 type CarService interface {
