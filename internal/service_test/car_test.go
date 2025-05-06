@@ -129,3 +129,146 @@ func TestGetCarByID(t *testing.T) {
 		})
 	}
 }
+
+func TestUpdateCar_Validation(t *testing.T) {
+	tests := []struct {
+		name    string
+		id      string
+		input   domain.UpdateCarInput
+		mockCar *domain.Car
+		mockErr error
+		wantErr string
+	}{
+		{
+			name: "Make too long",
+			id:   "1",
+			input: domain.UpdateCarInput{
+				Make: stringPtr(string(make([]byte, 256))),
+			},
+			mockCar: &domain.Car{ID: "1", Make: "Toyota", Model: "Camry", Year: 2020, Price: 25000},
+			wantErr: "make must be less than 255 characters",
+		},
+		{
+			name: "Empty make",
+			id:   "1",
+			input: domain.UpdateCarInput{
+				Make: stringPtr(""),
+			},
+			mockCar: &domain.Car{ID: "1", Make: "Toyota", Model: "Camry", Year: 2020, Price: 25000},
+			wantErr: "make cannot be empty",
+		},
+		{
+			name: "Empty model",
+			id:   "1",
+			input: domain.UpdateCarInput{
+				Model: stringPtr(""),
+			},
+			mockCar: &domain.Car{ID: "1", Make: "Toyota", Model: "Camry", Year: 2020, Price: 25000},
+			wantErr: "model cannot be empty",
+		},
+		{
+			name: "Year too old",
+			id:   "1",
+			input: domain.UpdateCarInput{
+				Year: intPtr(1899),
+			},
+			mockCar: &domain.Car{ID: "1", Make: "Toyota", Model: "Camry", Year: 2020, Price: 25000},
+			wantErr: "year must be >= 1900",
+		},
+		{
+			name: "Negative price",
+			id:   "1",
+			input: domain.UpdateCarInput{
+				Price: intPtr(-1),
+			},
+			mockCar: &domain.Car{ID: "1", Make: "Toyota", Model: "Camry", Year: 2020, Price: 25000},
+			wantErr: "price must be positive",
+		},
+		{
+			name: "Zero price",
+			id:   "1",
+			input: domain.UpdateCarInput{
+				Price: intPtr(0),
+			},
+			mockCar: &domain.Car{ID: "1", Make: "Toyota", Model: "Camry", Year: 2020, Price: 25000},
+			wantErr: "price must be positive",
+		},
+		{
+			name: "Valid partial update",
+			id:   "1",
+			input: domain.UpdateCarInput{
+				Price: intPtr(30000),
+			},
+			mockCar: &domain.Car{ID: "1", Make: "Toyota", Model: "Camry", Year: 2020, Price: 25000},
+		},
+		{
+			name: "Car not found",
+			id:   "999",
+			input: domain.UpdateCarInput{
+				Price: intPtr(30000),
+			},
+			mockCar: nil,
+			mockErr: domain.ErrCarNotFound,
+			wantErr: "car not found",
+		},
+		{
+			name: "Empty ID",
+			id:   "",
+			input: domain.UpdateCarInput{
+				Price: intPtr(30000),
+			},
+			wantErr: "id is required",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := new(mocks.CarRepository)
+			
+			if tt.id != "" {
+				if tt.mockErr != nil {
+					repo.On("GetByID", mock.Anything, tt.id).Return(nil, tt.mockErr)
+				} else if tt.mockCar != nil {
+					repo.On("GetByID", mock.Anything, tt.id).Return(tt.mockCar, nil)
+				}
+			}
+			
+			if tt.name != "Car not found" && tt.id != "" && tt.mockCar != nil {
+				updatedCar := *tt.mockCar
+				if tt.input.Make != nil {
+					updatedCar.Make = *tt.input.Make
+				}
+				if tt.input.Model != nil {
+					updatedCar.Model = *tt.input.Model
+				}
+				if tt.input.Year != nil {
+					updatedCar.Year = *tt.input.Year
+				}
+				if tt.input.Price != nil {
+					updatedCar.Price = *tt.input.Price
+				}
+				repo.On("Update", mock.Anything, tt.id, updatedCar).Return(&updatedCar, nil)
+			}
+
+			s := service.NewCarService(repo)
+			_, err := s.Update(context.Background(), tt.id, tt.input)
+
+			if tt.wantErr != "" {
+				assert.ErrorContains(t, err, tt.wantErr)
+				if tt.id != "" && tt.wantErr != "id is required" {
+					repo.AssertCalled(t, "GetByID", mock.Anything, tt.id)
+				}
+				repo.AssertNotCalled(t, "Update")
+			} else {
+				assert.NoError(t, err)
+				if tt.id != "" {
+					repo.AssertCalled(t, "GetByID", mock.Anything, tt.id)
+					repo.AssertCalled(t, "Update", mock.Anything, tt.id, mock.Anything)
+				}
+			}
+		})
+	}
+}
+
+func stringPtr(s string) *string { return &s }
+func intPtr(i int) *int         { return &i }
