@@ -133,3 +133,15 @@ func (s *carService) Update(ctx context.Context, id string, input domain.UpdateC
 
 	return updated, nil
 }
+
+func (s *carService) Delete(ctx context.Context, id string) error {
+	if id == "" {
+		return errors.New("id is required")
+	}
+
+	if err := s.repo.Delete(ctx, id); err != nil {
+		return fmt.Errorf("failed to delete car: %w", err)
+	}
+
+	return nil
+}
