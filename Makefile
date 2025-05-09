@@ -1,8 +1,8 @@
-APP_NAME = crud
+APP_NAME = go
 BIN_DIR = bin
 TEST_PKGS = ./...
 
-.PHONY: test deps cover lint build run clean install-lint migrate-up run-db stop-db
+.PHONY: test deps cover lint build run clean install-lint migrate-up migrateup1 migratedown migratedown1 run-db stop-db
 
 deps:
 	go mod tidy
@@ -32,11 +32,20 @@ run: build
 clean:
 	rm -rf $(BIN_DIR) coverage.out coverage.html
 
-migrate-up:
-	psql -h $(DB_HOST) -U $(DB_USER) -d $(DB_NAME) -c "CREATE TABLE IF NOT EXISTS cars (id VARCHAR(36) PRIMARY KEY, make VARCHAR(255) NOT NULL, model VARCHAR(255) NOT NULL, year INTEGER NOT NULL, price INTEGER NOT NULL);"
+migrateup:
+	migrate -path db/migration -database "postgresql://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=$(DB_SSLMODE)" -verbose up
+
+migrateup1:
+	migrate -path db/migration -database "postgresql://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=$(DB_SSLMODE)" -verbose up 1
+
+migratedown:
+	migrate -path db/migration -database "postgresql://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=$(DB_SSLMODE)" -verbose down
+
+migratedown1:
+	migrate -path db/migration -database "postgresql://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=$(DB_SSLMODE)" -verbose down 1
 
 run-db:
-	docker run --name go-postgres -e POSTGRES_USER=$(DB_USER) -e POSTGRES_PASSWORD=$(DB_PASSWORD) -e POSTGRES_DB=$(DB_NAME) -p 5432:5432 -d postgres:13-alpine
+	docker run --name go-postgres -e POSTGRES_USER=$(DB_USER) -e POSTGRES_PASSWORD=$(DB_PASSWORD) -e POSTGRES_DB=$(DB_NAME) -p $(DB_PORT):5432 -d postgres:13-alpine
 
 stop-db:
 	docker stop go-postgres
