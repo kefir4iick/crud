@@ -1,0 +1,7 @@
+CREATE TABLE cars (
+    id VARCHAR(36) PRIMARY KEY,
+    make VARCHAR(255) NOT NULL,
+    model VARCHAR(255) NOT NULL,
+    year INTEGER NOT NULL,
+    price INTEGER NOT NULL
+);
